@@ -1,0 +1,49 @@
+if [ `uname` == 'Darwin' ]; then
+  # We need gui support for plugins
+  export EDITOR="mvim -v"
+  export CLICOLOR=1 # For color with ls command on mac http://www.geekology.co.za/blog/2009/04/enabling-bash-terminal-directory-file-color-highlighting-mac-os-x/
+  export LSCOLORS=ExFxCxDxBxegedabagacad
+fi
+
+DEPLOY_USR=deploy
+username=`id -nu`              # Or...   username=`whoami`
+alias rvmp='rvm-prompt'
+
+# Function to assemble the Git part of our prompt.
+git_prompt ()
+{
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        return 0
+    fi
+ 
+    git_branch=$(git branch 2>/dev/null| sed -n '/^\*/s/^\* //p')
+ 
+    if git diff --quiet 2>/dev/null >&2; then
+        git_color="$EMG"
+    else
+        git_color="$EMR"
+    fi
+ 
+    echo " [$git_color$git_branch$N]"
+}
+
+
+# PROMPT_COMMAND - If set, the value is executed as a command prior to issuing each primary prompt.
+
+# Red prompt for root
+if [ $(id -u) == "0" ]; then
+  PROMPT_COMMAND='PS1="\n$R\u@\h: \w\n→ "'
+elif [ "$username" == "$DEPLOY_USR" ]; then
+  PROMPT_COMMAND='PS1="$EMW\n\u@\h:\w \n→ $N"'
+else
+  PROMPT_COMMAND='PS1="\n\n$Y\d \t$N\n\u@\h:$EMC \w$N \$(rvmp i v)$EMB\$(rvmp g)$N$(git_prompt)\n→ "'
+fi
+
+# Suppress duplicate entries by using the & switch. 
+# Also prevent ls, bg, fg, exit and other commands without parameters to be stored in history.
+export HISTIGNORE="&:ls:[bf]g:exit:h:l:c:..:...:kb:g:gl:"
+
+shopt -s histappend                      # append to history, don't overwrite it
+
+# Save and reload the history after each command finishes - to sync history between terminals
+export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
